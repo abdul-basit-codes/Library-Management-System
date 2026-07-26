@@ -345,6 +345,7 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     <button class="tab" data-panel="checkout"><i class="fa-solid fa-bookmark"></i> Checkout</button>
     <button class="tab" data-panel="returns"><i class="fa-solid fa-rotate-left"></i> Returns</button>
     <button class="tab" data-panel="members"><i class="fa-solid fa-users"></i> Members</button>
+    <button class="tab" data-panel="reviews"><i class="fa-solid fa-star"></i> Reviews</button>
     <button class="tab" data-panel="addbook"><i class="fa-solid fa-plus"></i> Add Book</button>
   </div>
 
@@ -403,6 +404,38 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     <div id="membersBody"></div>
   </div>
 
+  <div class="panel" id="reviews">
+    <p class="panel-title">Book Reviews</p>
+    <p class="panel-sub">Rate and review books you have read</p>
+    <div class="form-card" style="margin-bottom:18px;">
+      <div class="field">
+        <label>Book</label>
+        <select id="rvBookId"></select>
+      </div>
+      <div class="field">
+        <label>Your Name</label>
+        <input type="text" id="rvName" placeholder="e.g. Ahmed Khan">
+      </div>
+      <div class="field">
+        <label>Rating (1-5 stars)</label>
+        <select id="rvRating">
+          <option value="5">5 - Excellent</option>
+          <option value="4">4 - Very Good</option>
+          <option value="3">3 - Good</option>
+          <option value="2">2 - Fair</option>
+          <option value="1">1 - Poor</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Comment</label>
+        <input type="text" id="rvComment" placeholder="Write your review...">
+      </div>
+      <button class="btn btn-primary" onclick="addReview()"><i class="fa-solid fa-star"></i> Submit Review</button>
+      <div id="rvMsg"></div>
+    </div>
+    <div id="reviewsBody"></div>
+  </div>
+
   <div class="panel" id="addbook">
     <p class="panel-title">Add New Book</p>
     <p class="panel-sub">Add a book to the library catalog</p>
@@ -447,6 +480,7 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
   let books = [];
   let members = [];
   let checkouts = [];
+  let reviews = [];
   let usingAPI = false;
 
   // ── Seed data ──
@@ -560,6 +594,7 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     renderCatalog();
     renderReturns();
     renderMembers();
+    renderReviews();
   }
 
   function renderStats() {
@@ -750,6 +785,55 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     await apiSave();
     renderAll();
     toast(fee > 0 ? `Returned with $${fee.toFixed(2)} late fee` : 'Book returned (no late fee)');
+  };
+
+  // ── Reviews ──
+  function renderReviews() {
+    const sel = document.getElementById('rvBookId');
+    if (sel && sel.options.length <= 1) {
+      books.forEach(b => { const o = document.createElement('option'); o.value = b.id; o.textContent = b.id + ' - ' + b.title; sel.appendChild(o); });
+    }
+
+    const container = document.getElementById('reviewsBody');
+    if (!reviews.length) {
+      container.innerHTML = '<div class="empty-state"><i class="fa-solid fa-star"></i><p>No reviews yet. Be the first!</p></div>';
+      return;
+    }
+
+    container.innerHTML = `
+      <table>
+        <thead><tr><th>Book</th><th>Reviewer</th><th>Rating</th><th>Comment</th><th>Date</th></tr></thead>
+        <tbody>${reviews.map(r => {
+          const book = books.find(b => b.id === r.bookId);
+          const stars = '&#9733;'.repeat(r.rating) + '&#9734;'.repeat(5 - r.rating);
+          return `<tr>
+            <td><strong>${book ? book.title : r.bookId}</strong></td>
+            <td>${r.name}</td>
+            <td style="color:var(--gold-soft);font-size:16px;">${stars}</td>
+            <td>${r.comment}</td>
+            <td>${r.date}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    `;
+  }
+
+  window.addReview = async function() {
+    const bookId = document.getElementById('rvBookId').value;
+    const name = document.getElementById('rvName').value.trim();
+    const rating = parseInt(document.getElementById('rvRating').value);
+    const comment = document.getElementById('rvComment').value.trim();
+    const msg = document.getElementById('rvMsg');
+
+    if (!bookId || !name || !comment) { msg.innerHTML = '<div class="msg err">Please fill all fields.</div>'; return; }
+
+    reviews.push({ id: 'RV' + String(reviews.length + 1).padStart(3, '0'), bookId, name, rating, comment, date: today() });
+    await apiSave();
+    msg.innerHTML = '<div class="msg ok">Review submitted!</div>';
+    document.getElementById('rvName').value = '';
+    document.getElementById('rvComment').value = '';
+    renderAll();
+    toast('Review submitted');
   };
 
   // ── Init ──
