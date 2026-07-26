@@ -346,6 +346,7 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     <button class="tab" data-panel="returns"><i class="fa-solid fa-rotate-left"></i> Returns</button>
     <button class="tab" data-panel="members"><i class="fa-solid fa-users"></i> Members</button>
     <button class="tab" data-panel="reviews"><i class="fa-solid fa-star"></i> Reviews</button>
+    <button class="tab" data-panel="export"><i class="fa-solid fa-download"></i> Export</button>
     <button class="tab" data-panel="addbook"><i class="fa-solid fa-plus"></i> Add Book</button>
   </div>
 
@@ -402,6 +403,18 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
       <div id="memMsg"></div>
     </div>
     <div id="membersBody"></div>
+  </div>
+
+  <div class="panel" id="export">
+    <p class="panel-title">Export Data</p>
+    <p class="panel-sub">Download library data as CSV files</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="exportCSV('books')"><i class="fa-solid fa-file-csv"></i> Export Books</button>
+      <button class="btn btn-primary" onclick="exportCSV('members')"><i class="fa-solid fa-file-csv"></i> Export Members</button>
+      <button class="btn btn-primary" onclick="exportCSV('checkouts')"><i class="fa-solid fa-file-csv"></i> Export Checkouts</button>
+      <button class="btn btn-primary" onclick="exportCSV('reviews')"><i class="fa-solid fa-file-csv"></i> Export Reviews</button>
+    </div>
+    <div id="exportMsg" style="margin-top:16px;"></div>
   </div>
 
   <div class="panel" id="reviews">
@@ -785,6 +798,23 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     await apiSave();
     renderAll();
     toast(fee > 0 ? `Returned with $${fee.toFixed(2)} late fee` : 'Book returned (no late fee)');
+  };
+
+  // ── Export ──
+  window.exportCSV = function(type) {
+    let rows = [];
+    let headers = [];
+    if (type === 'books') { headers = ['ID','Title','Author','Genre','ISBN','Available']; rows = books.map(b => [b.id, b.title, b.author, b.genre, b.isbn, b.available]); }
+    else if (type === 'members') { headers = ['ID','Name','Joined']; rows = members.map(m => [m.id, m.name, m.joined]); }
+    else if (type === 'checkouts') { headers = ['ID','Book','Member','Date','Returned','Return Date','Late Fee']; rows = checkouts.map(c => [c.id, c.bookId, c.memberId, c.checkoutDate, c.returned, c.returnDate||'', c.lateFee]); }
+    else if (type === 'reviews') { headers = ['ID','Book','Reviewer','Rating','Comment','Date']; rows = reviews.map(r => [r.id, r.bookId, r.name, r.rating, r.comment, r.date]); }
+
+    const csv = [headers.join(','), ...rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = type + '-export.csv'; a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('exportMsg').innerHTML = '<div class="msg ok">Exported ' + rows.length + ' ' + type + ' records.</div>';
   };
 
   // ── Reviews ──
