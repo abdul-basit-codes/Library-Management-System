@@ -415,6 +415,13 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
       <button class="btn btn-primary" onclick="exportCSV('members')"><i class="fa-solid fa-file-csv"></i> Export Members</button>
       <button class="btn btn-primary" onclick="exportCSV('checkouts')"><i class="fa-solid fa-file-csv"></i> Export Checkouts</button>
       <button class="btn btn-primary" onclick="exportCSV('reviews')"><i class="fa-solid fa-file-csv"></i> Export Reviews</button>
+      <button class="btn btn-primary" onclick="exportJSON()" style="background:var(--purple);"><i class="fa-solid fa-database"></i> Export JSON</button>
+    </div>
+    <div class="form-card" style="margin-top:16px;">
+      <p style="font-weight:600;margin-bottom:8px;">Import JSON Backup</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">Restore full library data from a JSON backup file</p>
+      <input type="file" id="jsonImport" accept=".json" style="margin-bottom:8px;" onchange="importJSON(event)">
+      <div id="importMsg"></div>
     </div>
     <div id="exportMsg" style="margin-top:16px;"></div>
   </div>
@@ -480,6 +487,13 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
       </div>
       <button class="btn btn-primary" onclick="addBook()"><i class="fa-solid fa-plus"></i> Add Book</button>
       <div id="abMsg"></div>
+    </div>
+    <div class="form-card" style="margin-top:16px;">
+      <p style="font-weight:600;margin-bottom:8px;">Bulk Import Books</p>
+      <p style="font-size:12px;color:var(--text-light);margin-bottom:8px;">Paste comma-separated: Title, Author, Genre (one per line)</p>
+      <textarea id="bulkInput" rows="4" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:'JetBrains Mono';font-size:12px;resize:vertical;" placeholder="The Hobbit, J.R.R. Tolkien, Fiction&#10;Dune, Frank Herbert, Science"></textarea>
+      <button class="btn btn-primary" onclick="bulkImport()" style="margin-top:8px;background:var(--gold-soft);"><i class="fa-solid fa-upload"></i> Import Books</button>
+      <div id="bulkMsg"></div>
     </div>
   </div>
 
@@ -844,6 +858,28 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     toast(`Book "${title}" added`);
   };
 
+  window.bulkImport = async function() {
+    const text = document.getElementById('bulkInput').value.trim();
+    const msg = document.getElementById('bulkMsg');
+    if (!text) { msg.innerHTML = '<div class="msg err">Paste book data first.</div>'; return; }
+
+    const lines = text.split('\n').filter(l => l.trim());
+    let imported = 0;
+    for (const line of lines) {
+      const parts = line.split(',').map(s => s.trim());
+      if (parts.length >= 2) {
+        const [title, author, genre = 'Fiction'] = parts;
+        books.push({ id: genId('BK', books), title, author, genre, isbn: 'IMP-' + String(Date.now()).slice(-6), available: true });
+        imported++;
+      }
+    }
+    await apiSave();
+    msg.innerHTML = `<div class="msg ok">Imported ${imported} book${imported > 1 ? 's' : ''}</div>`;
+    document.getElementById('bulkInput').value = '';
+    renderAll();
+    toast(`Imported ${imported} books`);
+  };
+
   window.addMember = async function() {
     const name = document.getElementById('memName').value.trim();
     const msg = document.getElementById('memMsg');
@@ -927,6 +963,39 @@ tbody tr:hover td { background: rgba(15,52,96,0.03); }
     const a = document.createElement('a'); a.href = url; a.download = type + '-export.csv'; a.click();
     URL.revokeObjectURL(url);
     document.getElementById('exportMsg').innerHTML = '<div class="msg ok">Exported ' + rows.length + ' ' + type + ' records.</div>';
+  };
+
+  window.exportJSON = function() {
+    const data = { books, members, checkouts, reviews, favorites, exportedAt: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'library-backup.json'; a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup exported');
+  };
+
+  window.importJSON = function(event) {
+    const file = event.target.files[0];
+    const msg = document.getElementById('importMsg');
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.books) books = data.books;
+        if (data.members) members = data.members;
+        if (data.checkouts) checkouts = data.checkouts;
+        if (data.reviews) reviews = data.reviews;
+        if (data.favorites) favorites = data.favorites;
+        await apiSave();
+        renderAll();
+        msg.innerHTML = '<div class="msg ok">Data restored successfully!</div>';
+        toast('Backup restored');
+      } catch {
+        msg.innerHTML = '<div class="msg err">Invalid JSON file.</div>';
+      }
+    };
+    reader.readAsText(file);
   };
 
   // ── Reviews ──
