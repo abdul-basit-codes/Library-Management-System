@@ -26,15 +26,21 @@ function initData() {
         { id:'MEM002', name:'Sara Ali', joined:'2026-02-20' },
         { id:'MEM003', name:'Bilal Ahmed', joined:'2026-03-10' },
       ],
-      checkouts: []
+      checkouts: [
+        { id:'CO001', bookId:'BK001', memberId:'MEM001', dueDate:'2026-09-01', returned:false },
+      ]
     };
   }
 }
 
-module.exports = (req, res) => {
+function send(res, status, body) {
   res.setHeader('Content-Type', 'application/json');
+  res.status(status).json(body);
+}
+
+module.exports = (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -43,16 +49,56 @@ module.exports = (req, res) => {
   }
 
   initData();
+  const segments = (req.url || '/').split('?')[0].split('/').filter(Boolean);
 
-  if (req.method === 'GET') {
-    res.status(200).json(data);
-  } else if (req.method === 'POST') {
+  // State snapshot for the frontend
+  if (req.method === 'GET' && segments.length === 0) {
+    return send(res, 200, data);
+  }
+
+  // Bulk replace from the frontend (offline-first sync)
+  if (req.method === 'POST' && segments.length === 0) {
     const body = req.body || {};
     if (body.books) data.books = body.books;
     if (body.members) data.members = body.members;
     if (body.checkouts) data.checkouts = body.checkouts;
-    res.status(200).json({ ok: true });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    return send(res, 200, { ok: true });
   }
+
+  // Checkout: POST /checkout  { bookId, memberId, dueDate }
+  if (req.method === 'POST' && segments[0] === 'checkout') {
+    const { bookId, memberId, dueDate } = req.body || {};
+    const book = data.books.find((b) => b.id === bookId);
+    const member = data.members.find((m) => m.id === memberId);
+    if (!book || !member) {
+      return send(res, 400, { ok: false, error: 'Invalid book or member id' });
+    }
+    if (!book.available) {
+      return send(res, 409, { ok: false, error: 'Book is already checked out' });
+    }
+    const checkout = {
+      id: 'CO' + String(data.checkouts.length + 1).padStart(3, '0'),
+      bookId,
+      memberId,
+      dueDate: dueDate || '2026-09-01',
+      returned: false,
+    };
+    data.checkouts.push(checkout);
+    book.available = false;
+    return send(res, 201, { ok: true, checkout });
+  }
+
+  // Return: POST /return/:checkoutId
+  if (req.method === 'POST' && segments[0] === 'return') {
+    const checkout = data.checkouts.find((c) => c.id === segments[1]);
+    if (!checkout) {
+      return send(res, 404, { ok: false, error: 'Checkout not found' });
+    }
+    checkout.returned = true;
+    const book = data.books.find((b) => b.id === checkout.bookId);
+    if (book) book.available = true;
+    return send(res, 200, { ok: true, checkout });
+  }
+
+  return send(res, 405, { error: 'Method not allowed' });
 };
