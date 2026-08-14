@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] - 2026-08-14
+
+### Added
+- `POST /api/checkout` endpoint (validates book + member, marks book unavailable)
+- `POST /api/return/:checkoutId` endpoint (marks returned, frees the book)
+- Seeded checkout record and availability tracking in the serverless API
+
 ## [1.0.0] - 2026-07-24
 
 ### Added
