@@ -47,6 +47,22 @@ docker build -t library-mgmt .
 docker run -p 3000:3000 library-mgmt
 ```
 
+## API
+
+The serverless endpoint (`/api/server`) exposes:
+
+| Method | Route                  | Description                       |
+|--------|------------------------|-----------------------------------|
+| GET    | /api/server            | Full data snapshot                |
+| GET    | /api/server/books/search?q= | Search books (title/author/genre) |
+| GET    | /api/server/books/:id  | One book                          |
+| GET    | /api/server/members/:id| One member                        |
+| POST   | /api/server/books      | Create a book                     |
+| POST   | /api/server/members    | Create a member                   |
+| POST   | /api/server/checkout   | Check out a book                  |
+| POST   | /api/server/return/:checkoutId | Return a book              |
+| POST   | /api/server            | Bulk replace (offline sync)       |
+
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details
