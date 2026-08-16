@@ -65,6 +65,15 @@ module.exports = (req, res) => {
     return send(res, 200, { ok: true });
   }
 
+  // Book / member search: GET /books/search?q=term
+  if (req.method === 'GET' && segments[0] === 'books' && segments[1] === 'search') {
+    const q = (req.query?.q || '').toString().toLowerCase();
+    const results = q ? data.books.filter((b) =>
+      b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q) || b.genre.toLowerCase().includes(q)
+    ) : data.books;
+    return send(res, 200, { ok: true, count: results.length, data: results });
+  }
+
   // Checkout: POST /checkout  { bookId, memberId, dueDate }
   if (req.method === 'POST' && segments[0] === 'checkout') {
     const { bookId, memberId, dueDate } = req.body || {};
