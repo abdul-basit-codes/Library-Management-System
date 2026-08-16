@@ -51,9 +51,54 @@ module.exports = (req, res) => {
   initData();
   const segments = (req.url || '/').split('?')[0].split('/').filter(Boolean);
 
+  // Lookups for books and members by id
+  const findBook = (id) => data.books.find((b) => b.id === id);
+  const findMember = (id) => data.members.find((m) => m.id === id);
+
   // State snapshot for the frontend
   if (req.method === 'GET' && segments.length === 0) {
     return send(res, 200, data);
+  }
+
+  // GET /books/:id  or  /members/:id
+  if (req.method === 'GET' && segments.length === 2) {
+    const book = segments[0] === 'books' ? findBook(segments[1]) : null;
+    const member = segments[0] === 'members' ? findMember(segments[1]) : null;
+    if (book) return send(res, 200, { ok: true, data: book });
+    if (member) return send(res, 200, { ok: true, data: member });
+  }
+
+  // Create book: POST /books
+  if (req.method === 'POST' && segments[0] === 'books' && segments.length === 1) {
+    const b = req.body || {};
+    if (!b.title || !b.author) {
+      return send(res, 400, { ok: false, error: 'title and author are required' });
+    }
+    const book = {
+      id: 'BK' + String(data.books.length + 1).padStart(3, '0'),
+      title: b.title,
+      author: b.author,
+      genre: b.genre || 'General',
+      isbn: b.isbn || '',
+      available: true,
+    };
+    data.books.push(book);
+    return send(res, 201, { ok: true, data: book });
+  }
+
+  // Create member: POST /members
+  if (req.method === 'POST' && segments[0] === 'members' && segments.length === 1) {
+    const m = req.body || {};
+    if (!m.name) {
+      return send(res, 400, { ok: false, error: 'name is required' });
+    }
+    const member = {
+      id: 'MEM' + String(data.members.length + 1).padStart(3, '0'),
+      name: m.name,
+      joined: m.joined || new Date().toISOString().slice(0, 10),
+    };
+    data.members.push(member);
+    return send(res, 201, { ok: true, data: member });
   }
 
   // Bulk replace from the frontend (offline-first sync)
