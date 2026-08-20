@@ -101,6 +101,29 @@ module.exports = (req, res) => {
     return send(res, 201, { ok: true, data: member });
   }
 
+  // DELETE /books/:id  or  /members/:id
+  if (req.method === 'DELETE' && segments.length === 2) {
+    const bookIndex = segments[0] === 'books' ? data.books.findIndex((b) => b.id === segments[1]) : -1;
+    const memberIndex = segments[0] === 'members' ? data.members.findIndex((m) => m.id === segments[1]) : -1;
+    if (bookIndex !== -1) {
+      data.books.splice(bookIndex, 1);
+      return send(res, 200, { ok: true, deleted: true });
+    }
+    if (memberIndex !== -1) {
+      data.members.splice(memberIndex, 1);
+      return send(res, 200, { ok: true, deleted: true });
+    }
+    return send(res, 404, { ok: false, error: 'Not found' });
+  }
+
+  // Toggle availability: POST /books/:id/toggle
+  if (req.method === 'POST' && segments[0] === 'books' && segments[2] === 'toggle') {
+    const book = findBook(segments[1]);
+    if (!book) return send(res, 404, { ok: false, error: 'Book not found' });
+    book.available = !book.available;
+    return send(res, 200, { ok: true, data: book });
+  }
+
   // Bulk replace from the frontend (offline-first sync)
   if (req.method === 'POST' && segments.length === 0) {
     const body = req.body || {};
