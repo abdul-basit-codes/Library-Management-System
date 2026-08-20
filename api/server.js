@@ -119,6 +119,21 @@ module.exports = (req, res) => {
     return send(res, 200, { ok: true, count: results.length, data: results });
   }
 
+  // Library summary counts: GET /summary
+  if (req.method === 'GET' && segments[0] === 'summary') {
+    const checkedOut = data.checkouts.filter((c) => !c.returned);
+    return send(res, 200, {
+      ok: true,
+      data: {
+        books: data.books.length,
+        available: data.books.filter((b) => b.available).length,
+        checkedOut: checkedOut.length,
+        members: data.members.length,
+        overdueCheckouts: checkedOut.filter((c) => c.dueDate < new Date().toISOString().slice(0, 10)).length,
+      },
+    });
+  }
+
   // Checkout: POST /checkout  { bookId, memberId, dueDate }
   if (req.method === 'POST' && segments[0] === 'checkout') {
     const { bookId, memberId, dueDate } = req.body || {};
