@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-08-15
+
+### Added
+- Library summary endpoint with availability and overdue counts
+- DELETE endpoints for books and members
+- Book availability toggle endpoint
+- Checkouts listing with joined book/member names
+
 ## [1.1.0] - 2026-08-14
 
 ### Added

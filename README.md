@@ -54,11 +54,16 @@ The serverless endpoint (`/api/server`) exposes:
 | Method | Route                  | Description                       |
 |--------|------------------------|-----------------------------------|
 | GET    | /api/server            | Full data snapshot                |
+| GET    | /api/server/summary | Library counts        |
+| GET    | /api/server/checkouts | Checkouts w/ names    |
 | GET    | /api/server/books/search?q= | Search books (title/author/genre) |
 | GET    | /api/server/books/:id  | One book                          |
 | GET    | /api/server/members/:id| One member                        |
 | POST   | /api/server/books      | Create a book                     |
 | POST   | /api/server/members    | Create a member                   |
+| POST   | /api/server/books/:id/toggle | Toggle availability         |
+| DELETE | /api/server/books/:id  | Delete a book                     |
+| DELETE | /api/server/members/:id| Delete a member                   |
 | POST   | /api/server/checkout   | Check out a book                  |
 | POST   | /api/server/return/:checkoutId | Return a book              |
 | POST   | /api/server            | Bulk replace (offline sync)       |
