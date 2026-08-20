@@ -157,6 +157,16 @@ module.exports = (req, res) => {
     });
   }
 
+  // GET /checkouts  (list with book/member names joined)
+  if (req.method === 'GET' && segments[0] === 'checkouts') {
+    const joined = data.checkouts.map((c) => ({
+      ...c,
+      bookTitle: findBook(c.bookId)?.title,
+      memberName: findMember(c.memberId)?.name,
+    }));
+    return send(res, 200, { ok: true, count: joined.length, data: joined });
+  }
+
   // Checkout: POST /checkout  { bookId, memberId, dueDate }
   if (req.method === 'POST' && segments[0] === 'checkout') {
     const { bookId, memberId, dueDate } = req.body || {};
